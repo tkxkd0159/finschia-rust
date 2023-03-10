@@ -4,6 +4,7 @@ use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 fn main() -> io::Result<()> {
     if env::var_os("FNSA_INIT") != Some(OsString::from("1")) {
@@ -12,9 +13,8 @@ fn main() -> io::Result<()> {
 
     const TARGET_PROTO_DIR: &[&str; 2] = &["lbm-sdk/proto", "lbm-sdk/third_party/proto"];
 
-    let proto_out = "src/prost";
+    let proto_out = Path::new("src/prost");
     fs::create_dir_all(proto_out)?;
-    env::set_var("OUT_DIR", proto_out);
 
     let mut proto_files = Vec::new();
     visit_dirs(Path::new("lbm-sdk/proto"), &mut |x| {
@@ -23,13 +23,34 @@ fn main() -> io::Result<()> {
         }
         Some(())
     })?;
-    trace_proto_paths("log.txt", &proto_files)?;
+    trace_proto_paths("proto_list.txt", &proto_files)?;
 
-    prost_build::compile_protos(&proto_files, TARGET_PROTO_DIR)?;
+    let mut builder = prost_build::Config::new();
+    builder.include_file("_include.rs").out_dir(proto_out);
+    builder.compile_protos(&proto_files, TARGET_PROTO_DIR)?;
 
-    if env::var_os("INCLUDE_REGEN") == Some(OsString::from("1")) {
-        gen_proto_include("src/prost", "src/proto.rs")?;
+
+    // replace words to resolve conflicting implementation
+    for (pattern, replacement) in [
+        ("enum Validators", "enum Policy"),
+        (
+            "stake_authorization::Validators",
+            "stake_authorization::Policy",
+        ),
+    ] {
+        patch_file(
+            proto_out.join("cosmos.staking.v1beta1.rs"),
+            &regex::Regex::new(pattern).unwrap(),
+            replacement,
+        )
+        .expect("error patching cosmos.staking.v1beta1.rs");
     }
+
+    // Deprecated: use built-in prost option instead
+    // if env::var_os("INCLUDE_REGEN") == Some(OsString::from("1")) {
+    //     gen_proto_include("src/prost", "src/proto.rs")?;
+    // }
+
     Ok(())
 }
 
@@ -62,6 +83,14 @@ fn trace_proto_paths(logpath: &str, proto_paths: &Vec<PathBuf>) -> io::Result<()
         .open(logpath)
         .expect("cannot open this log");
 
+    logfile.write("Proto Version: ".as_ref())?;
+    let ver = Command::new("sh")
+        .arg("-c")
+        .arg("git submodule status lbm-sdk")
+        .output()
+        .unwrap();
+    logfile.write(&ver.stdout).expect("log writing failed");
+    logfile.write("\n".as_ref())?;
     for fname in proto_paths.iter() {
         logfile
             .write(format!("{}\n", fname.to_str().unwrap()).as_bytes())
@@ -71,6 +100,13 @@ fn trace_proto_paths(logpath: &str, proto_paths: &Vec<PathBuf>) -> io::Result<()
     Ok(())
 }
 
+fn patch_file(path: impl AsRef<Path>, pattern: &regex::Regex, replacement: &str) -> io::Result<()> {
+    let mut contents = fs::read_to_string(&path)?;
+    contents = pattern.replace_all(&contents, replacement).to_string();
+    fs::write(path, &contents)
+}
+
+#[allow(dead_code)]
 fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
     let out = Path::new(out);
     if out.exists() {
@@ -116,8 +152,9 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                 .split(".")
                 .collect::<Vec<&str>>();
             let tokens = &fullname[..fullname.len() - 1];
-            let next_name = if i != (v.len()-1) {
-                v[i+1].split("/")
+            let next_name = if i != (v.len() - 1) {
+                v[i + 1]
+                    .split("/")
                     .collect::<Vec<&str>>()
                     .pop()
                     .unwrap()
@@ -126,7 +163,12 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
             } else {
                 Vec::new()
             };
-            cont_sig = if (i != (v.len()-1)) && !next_name.is_empty() && (next_name[1] == tokens[1]) { true } else { false };
+            cont_sig =
+                if (i != (v.len() - 1)) && !next_name.is_empty() && (next_name[1] == tokens[1]) {
+                    true
+                } else {
+                    false
+                };
 
             let cur_token_len = tokens.len();
 
@@ -151,7 +193,7 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _include(&space4.repeat(3), f),
                                     _pubmod_suffix(&space4.repeat(2)),
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                             first = false;
                         } else {
@@ -162,10 +204,9 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _include(&space4.repeat(3), f),
                                     _pubmod_suffix(&space4.repeat(2)),
                                 )
-                                    .as_str(),
+                                .as_str(),
                             )
                         }
-
                     } else {
                         if first {
                             tmpl.push_str(
@@ -177,7 +218,7 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(2)),
                                     _pubmod_suffix(space4)
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                         } else {
                             tmpl.push_str(
@@ -188,13 +229,12 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(2)),
                                     _pubmod_suffix(space4)
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                             first = true;
                         }
-
                     }
-                },
+                }
                 4 => {
                     if cont_sig {
                         if first {
@@ -208,7 +248,7 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(3)),
                                     _pubmod_suffix(&space4.repeat(2)),
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                             first = false;
                         } else {
@@ -221,10 +261,9 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(3)),
                                     _pubmod_suffix(&space4.repeat(2)),
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                         }
-
                     } else {
                         if first {
                             tmpl.push_str(
@@ -238,7 +277,7 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(2)),
                                     _pubmod_suffix(space4)
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                         } else {
                             tmpl.push_str(
@@ -251,13 +290,12 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                                     _pubmod_suffix(&space4.repeat(2)),
                                     _pubmod_suffix(space4)
                                 )
-                                    .as_str(),
+                                .as_str(),
                             );
                             first = true;
                         }
-
                     }
-                },
+                }
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::Unsupported,

@@ -1,3 +1,5 @@
+Proto Version:  ce8d9106347bfa7b7ca2419036eb8fac348d5299 lbm-sdk (v0.46.0-rc8-217-gce8d91063)
+
 lbm-sdk/proto/lbm/bankplus/v1/bankplus.proto
 lbm-sdk/proto/lbm/token/v1/tx.proto
 lbm-sdk/proto/lbm/token/v1/genesis.proto
