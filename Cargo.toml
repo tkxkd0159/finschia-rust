@@ -18,10 +18,6 @@ prost-types = "0.11.8"
 prost-build = { version = "0.11.8" }
 regex = { version = "1.7.1" }
 
-[[test]]
-name = "basic"
-path = "src/lib.rs"
-test = true
-doctest = false
-bench = false
-doc = false
+[[example]]
+name = "e1"
+path = "src/examples/send_tx.rs"
