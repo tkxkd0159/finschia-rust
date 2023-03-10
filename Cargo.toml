@@ -1,0 +1,18 @@
+[package]
+name = "finschia-rust"
+version = "0.1.0"
+authors = ["Jayden Lee <tkxkd0159@gmail.com>"]
+edition = "2021"
+description = "Client SDK for finschia mainnet"
+readme = "README.md"
+repository = "https://github.com/tkxkd0159/finschia-rust"
+license-file = "LICENSE"
+keywords = ["cosmos", "tmrpc"]
+
+[dependencies]
+bytes = "1.4.0"
+prost = "0.11.8"
+prost-types = "0.11.8"
+
+[build-dependencies]
+prost-build = { version = "0.11.8" }

@@ -1,0 +1,936 @@
+/// Params defines the parameters for the foundation module.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Params {
+    #[prost(string, tag = "1")]
+    pub foundation_tax: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub censored_msg_type_urls: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+/// Member represents a foundation member with an account address and metadata.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Member {
+    /// address is the member's account address.
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+    /// metadata is any arbitrary metadata to attached to the member.
+    #[prost(string, tag = "2")]
+    pub metadata: ::prost::alloc::string::String,
+    /// added_at is a timestamp specifying when a member was added.
+    #[prost(message, optional, tag = "4")]
+    pub added_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// MemberRequest represents a foundation member to be used in Msg server requests.
+/// Contrary to `Member`, it doesn't have any `added_at` field
+/// since this field cannot be set as part of requests.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MemberRequest {
+    /// address is the member's account address.
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+    /// remove is the flag which allows one to remove the member by setting the flag to true.
+    #[prost(bool, tag = "2")]
+    pub remove: bool,
+    /// metadata is any arbitrary metadata attached to the member.
+    #[prost(string, tag = "3")]
+    pub metadata: ::prost::alloc::string::String,
+}
+/// ThresholdDecisionPolicy is a decision policy where a proposal passes when it
+/// satisfies the two following conditions:
+/// 1. The sum of all `YES` voters' weights is greater or equal than the defined
+///     `threshold`.
+/// 2. The voting and execution periods of the proposal respect the parameters
+///     given by `windows`.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ThresholdDecisionPolicy {
+    /// threshold is the minimum sum of yes votes that must be met or exceeded for a proposal to succeed.
+    #[prost(string, tag = "1")]
+    pub threshold: ::prost::alloc::string::String,
+    /// windows defines the different windows for voting and execution.
+    #[prost(message, optional, tag = "2")]
+    pub windows: ::core::option::Option<DecisionPolicyWindows>,
+}
+/// PercentageDecisionPolicy is a decision policy where a proposal passes when
+/// it satisfies the two following conditions:
+/// 1. The percentage of all `YES` voters' weights out of the total group weight
+///     is greater or equal than the given `percentage`.
+/// 2. The voting and execution periods of the proposal respect the parameters
+///     given by `windows`.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PercentageDecisionPolicy {
+    /// percentage is the minimum percentage the sum of yes votes must meet for a proposal to succeed.
+    #[prost(string, tag = "1")]
+    pub percentage: ::prost::alloc::string::String,
+    /// windows defines the different windows for voting and execution.
+    #[prost(message, optional, tag = "2")]
+    pub windows: ::core::option::Option<DecisionPolicyWindows>,
+}
+/// DecisionPolicyWindows defines the different windows for voting and execution.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecisionPolicyWindows {
+    /// voting_period is the duration from submission of a proposal to the end of voting period
+    /// Within this times votes can be submitted with MsgVote.
+    #[prost(message, optional, tag = "1")]
+    pub voting_period: ::core::option::Option<::prost_types::Duration>,
+    /// min_execution_period is the minimum duration after the proposal submission
+    /// where members can start sending MsgExec. This means that the window for
+    /// sending a MsgExec transaction is:
+    /// `[ submission + min_execution_period ; submission + voting_period + max_execution_period]`
+    /// where max_execution_period is a app-specific config, defined in the keeper.
+    /// If not set, min_execution_period will default to 0.
+    ///
+    /// Please make sure to set a `min_execution_period` that is smaller than
+    /// `voting_period + max_execution_period`, or else the above execution window
+    /// is empty, meaning that all proposals created with this decision policy
+    /// won't be able to be executed.
+    #[prost(message, optional, tag = "2")]
+    pub min_execution_period: ::core::option::Option<::prost_types::Duration>,
+}
+/// OutsourcingDecisionPolicy is a dummy decision policy which is set after
+/// the proposal feature has been outsourced to x/group.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OutsourcingDecisionPolicy {
+    #[prost(string, tag = "1")]
+    pub description: ::prost::alloc::string::String,
+}
+/// FoundationInfo represents the high-level on-chain information for the foundation.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FoundationInfo {
+    /// version is used to track changes to the foundation's membership structure that
+    /// would break existing proposals. Whenever any member is added or removed,
+    /// this version is incremented and will cause proposals based on older versions
+    /// of the foundation to fail
+    #[prost(uint64, tag = "1")]
+    pub version: u64,
+    /// total_weight is the number of the foundation members.
+    #[prost(string, tag = "2")]
+    pub total_weight: ::prost::alloc::string::String,
+    /// decision_policy specifies the foundation's decision policy.
+    #[prost(message, optional, tag = "3")]
+    pub decision_policy: ::core::option::Option<::prost_types::Any>,
+}
+/// Proposal defines a foundation proposal. Any member of the foundation can submit a proposal
+/// for a group policy to decide upon.
+/// A proposal consists of a set of `sdk.Msg`s that will be executed if the proposal
+/// passes as well as some optional metadata associated with the proposal.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Proposal {
+    /// id is the unique id of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    /// metadata is any arbitrary metadata to attached to the proposal.
+    #[prost(string, tag = "2")]
+    pub metadata: ::prost::alloc::string::String,
+    /// proposers are the account addresses of the proposers.
+    #[prost(string, repeated, tag = "3")]
+    pub proposers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// submit_time is a timestamp specifying when a proposal was submitted.
+    #[prost(message, optional, tag = "4")]
+    pub submit_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// foundation_version tracks the version of the foundation that this proposal corresponds to.
+    /// When foundation info is changed, existing proposals from previous foundation versions will become invalid.
+    #[prost(uint64, tag = "5")]
+    pub foundation_version: u64,
+    /// status represents the high level position in the life cycle of the proposal. Initial value is Submitted.
+    #[prost(enumeration = "ProposalStatus", tag = "6")]
+    pub status: i32,
+    /// final_tally_result contains the sums of all votes for this
+    /// proposal for each vote option, after tallying. When querying a proposal
+    /// via gRPC, this field is not populated until the proposal's voting period
+    /// has ended.
+    #[prost(message, optional, tag = "7")]
+    pub final_tally_result: ::core::option::Option<TallyResult>,
+    /// voting_period_end is the timestamp before which voting must be done.
+    /// Unless a successfull MsgExec is called before (to execute a proposal whose
+    /// tally is successful before the voting period ends), tallying will be done
+    /// at this point, and the `final_tally_result`, as well
+    /// as `status` and `result` fields will be accordingly updated.
+    #[prost(message, optional, tag = "8")]
+    pub voting_period_end: ::core::option::Option<::prost_types::Timestamp>,
+    /// executor_result is the final result based on the votes and election rule. Initial value is NotRun.
+    #[prost(enumeration = "ProposalExecutorResult", tag = "9")]
+    pub executor_result: i32,
+    /// messages is a list of Msgs that will be executed if the proposal passes.
+    #[prost(message, repeated, tag = "10")]
+    pub messages: ::prost::alloc::vec::Vec<::prost_types::Any>,
+}
+/// TallyResult represents the sum of votes for each vote option.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TallyResult {
+    /// yes_count is the sum of yes votes.
+    #[prost(string, tag = "1")]
+    pub yes_count: ::prost::alloc::string::String,
+    /// abstain_count is the sum of abstainers.
+    #[prost(string, tag = "2")]
+    pub abstain_count: ::prost::alloc::string::String,
+    /// no is the sum of no votes.
+    #[prost(string, tag = "3")]
+    pub no_count: ::prost::alloc::string::String,
+    /// no_with_veto_count is the sum of veto.
+    #[prost(string, tag = "4")]
+    pub no_with_veto_count: ::prost::alloc::string::String,
+}
+/// Vote represents a vote for a proposal.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Vote {
+    /// proposal is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// voter is the account address of the voter.
+    #[prost(string, tag = "2")]
+    pub voter: ::prost::alloc::string::String,
+    /// option is the voter's choice on the proposal.
+    #[prost(enumeration = "VoteOption", tag = "3")]
+    pub option: i32,
+    /// metadata is any arbitrary metadata to attached to the vote.
+    #[prost(string, tag = "4")]
+    pub metadata: ::prost::alloc::string::String,
+    /// submit_time is the timestamp when the vote was submitted.
+    #[prost(message, optional, tag = "5")]
+    pub submit_time: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Pool is used for tracking treasury.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Pool {
+    #[prost(message, repeated, tag = "1")]
+    pub treasury: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::DecCoin,
+    >,
+}
+/// VoteOption enumerates the valid vote options for a given proposal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VoteOption {
+    /// VOTE_OPTION_UNSPECIFIED defines a no-op vote option.
+    Unspecified = 0,
+    /// VOTE_OPTION_YES defines a yes vote option.
+    Yes = 1,
+    /// VOTE_OPTION_ABSTAIN defines an abstain vote option.
+    Abstain = 2,
+    /// VOTE_OPTION_NO defines a no vote option.
+    No = 3,
+    /// VOTE_OPTION_NO_WITH_VETO defines a no with veto vote option.
+    NoWithVeto = 4,
+}
+impl VoteOption {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            VoteOption::Unspecified => "VOTE_OPTION_UNSPECIFIED",
+            VoteOption::Yes => "VOTE_OPTION_YES",
+            VoteOption::Abstain => "VOTE_OPTION_ABSTAIN",
+            VoteOption::No => "VOTE_OPTION_NO",
+            VoteOption::NoWithVeto => "VOTE_OPTION_NO_WITH_VETO",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VOTE_OPTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "VOTE_OPTION_YES" => Some(Self::Yes),
+            "VOTE_OPTION_ABSTAIN" => Some(Self::Abstain),
+            "VOTE_OPTION_NO" => Some(Self::No),
+            "VOTE_OPTION_NO_WITH_VETO" => Some(Self::NoWithVeto),
+            _ => None,
+        }
+    }
+}
+/// ProposalStatus defines proposal statuses.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ProposalStatus {
+    /// An empty value is invalid and not allowed.
+    Unspecified = 0,
+    /// Initial status of a proposal when submitted.
+    Submitted = 1,
+    /// Final status of a proposal when the final tally is done and the outcome
+    /// passes the foundation's decision policy.
+    Accepted = 2,
+    /// Final status of a proposal when the final tally is done and the outcome
+    /// is rejected by the foundation's decision policy.
+    Rejected = 3,
+    /// Final status of a proposal when the decision policy is modified before the
+    /// final tally.
+    Aborted = 4,
+    /// A proposal can be withdrawn before the voting start time by the owner.
+    /// When this happens the final status is Withdrawn.
+    Withdrawn = 5,
+}
+impl ProposalStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ProposalStatus::Unspecified => "PROPOSAL_STATUS_UNSPECIFIED",
+            ProposalStatus::Submitted => "PROPOSAL_STATUS_SUBMITTED",
+            ProposalStatus::Accepted => "PROPOSAL_STATUS_ACCEPTED",
+            ProposalStatus::Rejected => "PROPOSAL_STATUS_REJECTED",
+            ProposalStatus::Aborted => "PROPOSAL_STATUS_ABORTED",
+            ProposalStatus::Withdrawn => "PROPOSAL_STATUS_WITHDRAWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PROPOSAL_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "PROPOSAL_STATUS_SUBMITTED" => Some(Self::Submitted),
+            "PROPOSAL_STATUS_ACCEPTED" => Some(Self::Accepted),
+            "PROPOSAL_STATUS_REJECTED" => Some(Self::Rejected),
+            "PROPOSAL_STATUS_ABORTED" => Some(Self::Aborted),
+            "PROPOSAL_STATUS_WITHDRAWN" => Some(Self::Withdrawn),
+            _ => None,
+        }
+    }
+}
+/// ProposalExecutorResult defines types of proposal executor results.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ProposalExecutorResult {
+    /// An empty value is not allowed.
+    Unspecified = 0,
+    /// We have not yet run the executor.
+    NotRun = 1,
+    /// The executor was successful and proposed action updated state.
+    Success = 2,
+    /// The executor returned an error and proposed action didn't update state.
+    Failure = 3,
+}
+impl ProposalExecutorResult {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ProposalExecutorResult::Unspecified => "PROPOSAL_EXECUTOR_RESULT_UNSPECIFIED",
+            ProposalExecutorResult::NotRun => "PROPOSAL_EXECUTOR_RESULT_NOT_RUN",
+            ProposalExecutorResult::Success => "PROPOSAL_EXECUTOR_RESULT_SUCCESS",
+            ProposalExecutorResult::Failure => "PROPOSAL_EXECUTOR_RESULT_FAILURE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PROPOSAL_EXECUTOR_RESULT_UNSPECIFIED" => Some(Self::Unspecified),
+            "PROPOSAL_EXECUTOR_RESULT_NOT_RUN" => Some(Self::NotRun),
+            "PROPOSAL_EXECUTOR_RESULT_SUCCESS" => Some(Self::Success),
+            "PROPOSAL_EXECUTOR_RESULT_FAILURE" => Some(Self::Failure),
+            _ => None,
+        }
+    }
+}
+/// MsgUpdateParams is the Msg/UpdateParams request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateParams {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    /// params defines the x/foundation parameters to update.
+    ///
+    /// NOTE: All parameters must be supplied.
+    #[prost(message, optional, tag = "2")]
+    pub params: ::core::option::Option<Params>,
+}
+/// MsgUpdateParamsResponse is the Msg/UpdateParams response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateParamsResponse {}
+/// MsgFundTreasury is the Msg/FundTreasury request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgFundTreasury {
+    #[prost(string, tag = "1")]
+    pub from: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub amount: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::Coin,
+    >,
+}
+/// MsgFundTreasuryResponse is the Msg/FundTreasury response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgFundTreasuryResponse {}
+/// MsgWithdrawFromTreasury is the Msg/WithdrawFromTreasury request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgWithdrawFromTreasury {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub to: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub amount: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::Coin,
+    >,
+}
+/// MsgWithdrawFromTreasuryResponse is the Msg/WithdrawFromTreasury response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgWithdrawFromTreasuryResponse {}
+/// MsgUpdateMembers is the Msg/UpdateMembers request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateMembers {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    /// member_updates is the list of members to update,
+    /// set remove to true to remove a member.
+    #[prost(message, repeated, tag = "2")]
+    pub member_updates: ::prost::alloc::vec::Vec<MemberRequest>,
+}
+/// MsgUpdateMembersResponse is the Msg/UpdateMembers response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateMembersResponse {}
+/// MsgUpdateDecisionPolicy is the Msg/UpdateDecisionPolicy request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateDecisionPolicy {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    /// decision_policy is the updated decision policy.
+    #[prost(message, optional, tag = "2")]
+    pub decision_policy: ::core::option::Option<::prost_types::Any>,
+}
+/// MsgUpdateDecisionPolicyResponse is the Msg/UpdateDecisionPolicy response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateDecisionPolicyResponse {}
+/// MsgSubmitProposal is the Msg/SubmitProposal request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgSubmitProposal {
+    /// proposers are the account addresses of the proposers.
+    /// Proposers signatures will be counted as yes votes.
+    #[prost(string, repeated, tag = "1")]
+    pub proposers: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// metadata is any arbitrary metadata to attached to the proposal.
+    #[prost(string, tag = "2")]
+    pub metadata: ::prost::alloc::string::String,
+    /// messages is a list of `sdk.Msg`s that will be executed if the proposal passes.
+    #[prost(message, repeated, tag = "3")]
+    pub messages: ::prost::alloc::vec::Vec<::prost_types::Any>,
+    /// exec defines the mode of execution of the proposal,
+    /// whether it should be executed immediately on creation or not.
+    /// If so, proposers signatures are considered as Yes votes.
+    #[prost(enumeration = "Exec", tag = "4")]
+    pub exec: i32,
+}
+/// MsgSubmitProposalResponse is the Msg/SubmitProposal response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgSubmitProposalResponse {
+    /// proposal is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+}
+/// MsgWithdrawProposal is the Msg/WithdrawProposal request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgWithdrawProposal {
+    /// proposal is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// address of one of the proposer of the proposal.
+    #[prost(string, tag = "2")]
+    pub address: ::prost::alloc::string::String,
+}
+/// MsgWithdrawProposalResponse is the Msg/WithdrawProposal response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgWithdrawProposalResponse {}
+/// MsgVote is the Msg/Vote request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgVote {
+    /// proposal is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// voter is the voter account address.
+    #[prost(string, tag = "2")]
+    pub voter: ::prost::alloc::string::String,
+    /// option is the voter's choice on the proposal.
+    #[prost(enumeration = "VoteOption", tag = "3")]
+    pub option: i32,
+    /// metadata is any arbitrary metadata to attached to the vote.
+    #[prost(string, tag = "4")]
+    pub metadata: ::prost::alloc::string::String,
+    /// exec defines whether the proposal should be executed
+    /// immediately after voting or not.
+    #[prost(enumeration = "Exec", tag = "5")]
+    pub exec: i32,
+}
+/// MsgVoteResponse is the Msg/Vote response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgVoteResponse {}
+/// MsgExec is the Msg/Exec request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgExec {
+    /// proposal is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// signer is the account address used to execute the proposal.
+    #[prost(string, tag = "2")]
+    pub signer: ::prost::alloc::string::String,
+}
+/// MsgExecResponse is the Msg/Exec request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgExecResponse {}
+/// MsgLeaveFoundation is the Msg/LeaveFoundation request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgLeaveFoundation {
+    /// address is the account address of the foundation member.
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+}
+/// MsgLeaveFoundationResponse is the Msg/LeaveFoundation response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgLeaveFoundationResponse {}
+/// MsgGrant is the Msg/Grant request type.
+/// on behalf of the foundation.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgGrant {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub grantee: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub authorization: ::core::option::Option<::prost_types::Any>,
+}
+/// MsgGrantResponse is the Msg/MsgGrant response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgGrantResponse {}
+/// MsgRevoke is the Msg/Revoke request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgRevoke {
+    /// authority is the address of the privileged account.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub grantee: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub msg_type_url: ::prost::alloc::string::String,
+}
+/// MsgRevokeResponse is the Msg/MsgRevokeResponse response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgRevokeResponse {}
+/// Exec defines modes of execution of a proposal on creation or on new vote.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Exec {
+    /// An empty value means that there should be a separate
+    /// MsgExec request for the proposal to execute.
+    Unspecified = 0,
+    /// Try to execute the proposal immediately.
+    /// If the proposal is not allowed per the DecisionPolicy,
+    /// the proposal will still be open and could
+    /// be executed at a later point.
+    Try = 1,
+}
+impl Exec {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Exec::Unspecified => "EXEC_UNSPECIFIED",
+            Exec::Try => "EXEC_TRY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXEC_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXEC_TRY" => Some(Self::Try),
+            _ => None,
+        }
+    }
+}
+/// ReceiveFromTreasuryAuthorization allows the grantee to receive coins
+/// up to receive_limit from the treasury.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReceiveFromTreasuryAuthorization {}
+/// GenesisState defines the foundation module's genesis state.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GenesisState {
+    /// params defines the module parameters at genesis.
+    #[prost(message, optional, tag = "1")]
+    pub params: ::core::option::Option<Params>,
+    /// foundation is the foundation info.
+    #[prost(message, optional, tag = "2")]
+    pub foundation: ::core::option::Option<FoundationInfo>,
+    /// members is the list of the foundation members.
+    #[prost(message, repeated, tag = "3")]
+    pub members: ::prost::alloc::vec::Vec<Member>,
+    /// it is used to get the next proposal ID.
+    #[prost(uint64, tag = "4")]
+    pub previous_proposal_id: u64,
+    /// proposals is the list of proposals.
+    #[prost(message, repeated, tag = "5")]
+    pub proposals: ::prost::alloc::vec::Vec<Proposal>,
+    /// votes is the list of votes.
+    #[prost(message, repeated, tag = "6")]
+    pub votes: ::prost::alloc::vec::Vec<Vote>,
+    /// grants
+    #[prost(message, repeated, tag = "7")]
+    pub authorizations: ::prost::alloc::vec::Vec<GrantAuthorization>,
+    /// pool
+    #[prost(message, optional, tag = "8")]
+    pub pool: ::core::option::Option<Pool>,
+}
+/// GrantAuthorization defines authorization grant to grantee via route.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GrantAuthorization {
+    #[prost(string, tag = "1")]
+    pub grantee: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub authorization: ::core::option::Option<::prost_types::Any>,
+}
+/// EventUpdateParams is emitted after updating foundation parameters.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventUpdateParams {
+    #[prost(message, optional, tag = "1")]
+    pub params: ::core::option::Option<Params>,
+}
+/// EventFundTreasury is an event emitted when one funds the treasury.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventFundTreasury {
+    #[prost(string, tag = "1")]
+    pub from: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub amount: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::Coin,
+    >,
+}
+/// EventWithdrawFromTreasury is an event emitted when coins are withdrawn from the treasury.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventWithdrawFromTreasury {
+    #[prost(string, tag = "1")]
+    pub to: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub amount: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::Coin,
+    >,
+}
+/// EventUpdateMembers is an event emitted when the members have been updated.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventUpdateMembers {
+    #[prost(message, repeated, tag = "1")]
+    pub member_updates: ::prost::alloc::vec::Vec<MemberRequest>,
+}
+/// EventUpdateDecisionPolicy is an event emitted when the decision policy have been updated.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventUpdateDecisionPolicy {
+    #[prost(message, optional, tag = "1")]
+    pub decision_policy: ::core::option::Option<::prost_types::Any>,
+}
+/// EventSubmitProposal is an event emitted when a proposal is created.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventSubmitProposal {
+    /// proposal is the unique ID of the proposal.
+    #[prost(message, optional, tag = "1")]
+    pub proposal: ::core::option::Option<Proposal>,
+}
+/// EventWithdrawProposal is an event emitted when a proposal is withdrawn.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventWithdrawProposal {
+    /// proposal_id is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+}
+/// EventVote is an event emitted when a voter votes on a proposal.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventVote {
+    #[prost(message, optional, tag = "1")]
+    pub vote: ::core::option::Option<Vote>,
+}
+/// EventExec is an event emitted when a proposal is executed.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventExec {
+    /// proposal_id is the unique ID of the proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// result is the proposal execution result.
+    #[prost(enumeration = "ProposalExecutorResult", tag = "2")]
+    pub result: i32,
+    /// logs contains error logs in case the execution result is FAILURE.
+    #[prost(string, tag = "3")]
+    pub logs: ::prost::alloc::string::String,
+}
+/// EventLeaveFoundation is an event emitted when a foundation member leaves the foundation.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventLeaveFoundation {
+    /// address is the account address of the foundation member.
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+}
+/// EventGrant is emitted on Msg/Grant
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventGrant {
+    /// the address of the grantee.
+    #[prost(string, tag = "1")]
+    pub grantee: ::prost::alloc::string::String,
+    /// authorization granted.
+    #[prost(message, optional, tag = "2")]
+    pub authorization: ::core::option::Option<::prost_types::Any>,
+}
+/// EventRevoke is emitted on Msg/Revoke
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventRevoke {
+    /// address of the grantee.
+    #[prost(string, tag = "1")]
+    pub grantee: ::prost::alloc::string::String,
+    /// message type url for which an autorization is revoked.
+    #[prost(string, tag = "2")]
+    pub msg_type_url: ::prost::alloc::string::String,
+}
+/// QueryParamsRequest is the request type for the Query/Params RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryParamsRequest {}
+/// QueryParamsResponse is the response type for the Query/Params RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryParamsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub params: ::core::option::Option<Params>,
+}
+/// QueryTreasuryRequest is the request type for the
+/// Query/Treasury RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryTreasuryRequest {}
+/// QueryTreasuryResponse is the response type for the
+/// Query/Treasury RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryTreasuryResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub amount: ::prost::alloc::vec::Vec<
+        super::super::super::cosmos::base::v1beta1::DecCoin,
+    >,
+}
+/// QueryFoundationInfoRequest is the Query/FoundationInfo request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryFoundationInfoRequest {}
+/// QueryFoundationInfoResponse is the Query/FoundationInfo response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryFoundationInfoResponse {
+    /// info is the FoundationInfo for the foundation.
+    #[prost(message, optional, tag = "1")]
+    pub info: ::core::option::Option<FoundationInfo>,
+}
+/// QueryMemberRequest is the Query/Member request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryMemberRequest {
+    #[prost(string, tag = "1")]
+    pub address: ::prost::alloc::string::String,
+}
+/// QueryMemberResponse is the Query/MemberResponse response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryMemberResponse {
+    /// member is the members of the foundation.
+    #[prost(message, optional, tag = "1")]
+    pub member: ::core::option::Option<Member>,
+}
+/// QueryMembersRequest is the Query/Members request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryMembersRequest {
+    /// pagination defines an optional pagination for the request.
+    #[prost(message, optional, tag = "1")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageRequest,
+    >,
+}
+/// QueryMembersResponse is the Query/MembersResponse response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryMembersResponse {
+    /// members are the members of the foundation.
+    #[prost(message, repeated, tag = "1")]
+    pub members: ::prost::alloc::vec::Vec<Member>,
+    /// pagination defines the pagination in the response.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageResponse,
+    >,
+}
+/// QueryProposalRequest is the Query/Proposal request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryProposalRequest {
+    /// proposal_id is the unique ID of a proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+}
+/// QueryProposalResponse is the Query/Proposal response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryProposalResponse {
+    /// proposal is the proposal info.
+    #[prost(message, optional, tag = "1")]
+    pub proposal: ::core::option::Option<Proposal>,
+}
+/// QueryProposals is the Query/Proposals request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryProposalsRequest {
+    /// pagination defines an optional pagination for the request.
+    #[prost(message, optional, tag = "1")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageRequest,
+    >,
+}
+/// QueryProposalsResponse is the Query/Proposals response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryProposalsResponse {
+    /// proposals are the proposals of the foundation.
+    #[prost(message, repeated, tag = "1")]
+    pub proposals: ::prost::alloc::vec::Vec<Proposal>,
+    /// pagination defines the pagination in the response.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageResponse,
+    >,
+}
+/// QueryVote is the Query/Vote request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryVoteRequest {
+    /// proposal_id is the unique ID of a proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// voter is a proposal voter account address.
+    #[prost(string, tag = "2")]
+    pub voter: ::prost::alloc::string::String,
+}
+/// QueryVoteResponse is the Query/Vote response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryVoteResponse {
+    /// vote is the vote with given proposal_id and voter.
+    #[prost(message, optional, tag = "1")]
+    pub vote: ::core::option::Option<Vote>,
+}
+/// QueryVotes is the Query/Votes request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryVotesRequest {
+    /// proposal_id is the unique ID of a proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+    /// pagination defines an optional pagination for the request.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageRequest,
+    >,
+}
+/// QueryVotesResponse is the Query/Votes response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryVotesResponse {
+    /// votes are the list of votes for given proposal_id.
+    #[prost(message, repeated, tag = "1")]
+    pub votes: ::prost::alloc::vec::Vec<Vote>,
+    /// pagination defines the pagination in the response.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageResponse,
+    >,
+}
+/// QueryTallyResultRequest is the Query/TallyResult request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryTallyResultRequest {
+    /// proposal_id is the unique id of a proposal.
+    #[prost(uint64, tag = "1")]
+    pub proposal_id: u64,
+}
+/// QueryTallyResultResponse is the Query/TallyResult response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryTallyResultResponse {
+    /// tally defines the requested tally.
+    #[prost(message, optional, tag = "1")]
+    pub tally: ::core::option::Option<TallyResult>,
+}
+/// QueryGrantsRequest is the request type for the Query/Grants RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryGrantsRequest {
+    #[prost(string, tag = "1")]
+    pub grantee: ::prost::alloc::string::String,
+    /// Optional, msg_type_url, when set, will query only grants matching given msg type.
+    #[prost(string, tag = "2")]
+    pub msg_type_url: ::prost::alloc::string::String,
+    /// pagination defines an optional pagination for the request.
+    #[prost(message, optional, tag = "3")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageRequest,
+    >,
+}
+/// QueryGrantsResponse is the response type for the Query/Grants RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryGrantsResponse {
+    /// authorizations is a list of grants granted for grantee.
+    #[prost(message, repeated, tag = "1")]
+    pub authorizations: ::prost::alloc::vec::Vec<::prost_types::Any>,
+    /// pagination defines the pagination in the response.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageResponse,
+    >,
+}
