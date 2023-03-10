@@ -16,3 +16,11 @@ prost-types = "0.11.8"
 
 [build-dependencies]
 prost-build = { version = "0.11.8" }
+
+[[test]]
+name = "basic"
+path = "src/lib.rs"
+test = true
+doctest = false
+bench = false
+doc = false

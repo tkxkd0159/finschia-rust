@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::env;
+use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 fn main() -> io::Result<()> {
-    // if env::var_os("FNSA_INIT") != Some(OsString::from("1")) {
-    //     println!("cargo:rerun-if-changed=build.rs");
-    // }
+    if env::var_os("FNSA_INIT") != Some(OsString::from("1")) {
+        println!("cargo:rerun-if-changed=build.rs");
+    }
 
     const TARGET_PROTO_DIR: &[&str; 2] = &["lbm-sdk/proto", "lbm-sdk/third_party/proto"];
 
@@ -25,7 +26,10 @@ fn main() -> io::Result<()> {
     trace_proto_paths("log.txt", &proto_files)?;
 
     prost_build::compile_protos(&proto_files, TARGET_PROTO_DIR)?;
-    gen_proto_include("src/prost", "src/proto.rs")?;
+
+    if env::var_os("INCLUDE_REGEN") == Some(OsString::from("1")) {
+        gen_proto_include("src/prost", "src/proto.rs")?;
+    }
     Ok(())
 }
 
@@ -97,9 +101,13 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
     let _include =
         |space: &str, path: &str| -> String { format!("{}include!(\"{}\");", space, path) };
 
-    for (k, v) in proto_map.iter() {
+    for (k, v) in proto_map.iter_mut() {
+        v.sort();
         let mut tmpl = _pubmod_prefix(&space4.repeat(0), k);
-        for f in v.iter() {
+        let mut first = true;
+        let mut cont_sig;
+
+        for (i, f) in v.iter().enumerate() {
             let fullname = f
                 .split("/")
                 .collect::<Vec<&str>>()
@@ -108,8 +116,21 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                 .split(".")
                 .collect::<Vec<&str>>();
             let tokens = &fullname[..fullname.len() - 1];
+            let next_name = if i != (v.len()-1) {
+                v[i+1].split("/")
+                    .collect::<Vec<&str>>()
+                    .pop()
+                    .unwrap()
+                    .split(".")
+                    .collect::<Vec<&str>>()
+            } else {
+                Vec::new()
+            };
+            cont_sig = if (i != (v.len()-1)) && !next_name.is_empty() && (next_name[1] == tokens[1]) { true } else { false };
 
-            match tokens.len() {
+            let cur_token_len = tokens.len();
+
+            match cur_token_len {
                 2 => tmpl.push_str(
                     format!(
                         "{}{}{}\n",
@@ -119,30 +140,124 @@ fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
                     )
                     .as_str(),
                 ),
-                3 => tmpl.push_str(
-                    format!(
-                        "{}{}{}{}{}\n",
-                        _pubmod_prefix(space4, tokens[1]),
-                        _pubmod_prefix(&space4.repeat(2), tokens[2]),
-                        _include(&space4.repeat(3), f),
-                        _pubmod_suffix(&space4.repeat(2)),
-                        _pubmod_suffix(space4)
-                    )
-                    .as_str(),
-                ),
-                4 => tmpl.push_str(
-                    format!(
-                        "{}{}{}{}{}{}{}\n",
-                        _pubmod_prefix(space4, tokens[1]),
-                        _pubmod_prefix(&space4.repeat(2), tokens[2]),
-                        _pubmod_prefix(&space4.repeat(3), tokens[3]),
-                        _include(&space4.repeat(4), f),
-                        _pubmod_suffix(&space4.repeat(3)),
-                        _pubmod_suffix(&space4.repeat(2)),
-                        _pubmod_suffix(space4)
-                    )
-                    .as_str(),
-                ),
+                3 => {
+                    if cont_sig {
+                        if first {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}\n",
+                                    _pubmod_prefix(space4, tokens[1]),
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _include(&space4.repeat(3), f),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                )
+                                    .as_str(),
+                            );
+                            first = false;
+                        } else {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}\n",
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _include(&space4.repeat(3), f),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                )
+                                    .as_str(),
+                            )
+                        }
+
+                    } else {
+                        if first {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}{}\n",
+                                    _pubmod_prefix(space4, tokens[1]),
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _include(&space4.repeat(3), f),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                    _pubmod_suffix(space4)
+                                )
+                                    .as_str(),
+                            );
+                        } else {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}\n",
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _include(&space4.repeat(3), f),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                    _pubmod_suffix(space4)
+                                )
+                                    .as_str(),
+                            );
+                            first = true;
+                        }
+
+                    }
+                },
+                4 => {
+                    if cont_sig {
+                        if first {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}{}{}\n",
+                                    _pubmod_prefix(space4, tokens[1]),
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _pubmod_prefix(&space4.repeat(3), tokens[3]),
+                                    _include(&space4.repeat(4), f),
+                                    _pubmod_suffix(&space4.repeat(3)),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                )
+                                    .as_str(),
+                            );
+                            first = false;
+                        } else {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}{}\n",
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _pubmod_prefix(&space4.repeat(3), tokens[3]),
+                                    _include(&space4.repeat(4), f),
+                                    _pubmod_suffix(&space4.repeat(3)),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                )
+                                    .as_str(),
+                            );
+                        }
+
+                    } else {
+                        if first {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}{}{}{}\n",
+                                    _pubmod_prefix(space4, tokens[1]),
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _pubmod_prefix(&space4.repeat(3), tokens[3]),
+                                    _include(&space4.repeat(4), f),
+                                    _pubmod_suffix(&space4.repeat(3)),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                    _pubmod_suffix(space4)
+                                )
+                                    .as_str(),
+                            );
+                        } else {
+                            tmpl.push_str(
+                                format!(
+                                    "{}{}{}{}{}{}\n",
+                                    _pubmod_prefix(&space4.repeat(2), tokens[2]),
+                                    _pubmod_prefix(&space4.repeat(3), tokens[3]),
+                                    _include(&space4.repeat(4), f),
+                                    _pubmod_suffix(&space4.repeat(3)),
+                                    _pubmod_suffix(&space4.repeat(2)),
+                                    _pubmod_suffix(space4)
+                                )
+                                    .as_str(),
+                            );
+                            first = true;
+                        }
+
+                    }
+                },
                 _ => {
                     return Err(io::Error::new(
                         io::ErrorKind::Unsupported,
