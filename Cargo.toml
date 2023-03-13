@@ -19,5 +19,5 @@ prost-build = { version = "0.11.8" }
 regex = { version = "1.7.1" }
 
 [[example]]
-name = "e1"
-path = "src/examples/send_tx.rs"
+name = "send_tx"
+path = "src/examples/send_tx/main.rs"
