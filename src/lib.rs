@@ -1,6 +1,7 @@
 include!("prost/_include.rs");
-mod msg;
+pub use prost::DecodeError;
 
+mod msg;
 pub use msg::{from_any, to_any};
 
 #[test]
@@ -23,6 +24,21 @@ fn test_proto_scheme() {
 
     let anymsg = to_any(&msg, "/cosmos.bank.v1beta1.MsgSend");
     assert_eq!(anymsg.type_url, "/cosmos.bank.v1beta1.MsgSend");
-    let origmsg = from_any::<cosmos::bank::v1beta1::MsgSend>(&anymsg).unwrap();
+    let origmsg = match from_any::<cosmos::bank::v1beta1::MsgSend>(&anymsg) {
+        Ok(msg) => msg,
+        Err(e) => {
+            match e.downcast_ref::<DecodeError>() {
+                Some(e) => {
+                    println!("Decode Error: {}", e);
+                    assert!(false);
+                }
+                None => {
+                    println!("Unexpected Error: {:?}", e);
+                    assert!(false);
+                }
+            }
+            return;
+        }
+    };
     assert_eq!(msg, origmsg);
 }

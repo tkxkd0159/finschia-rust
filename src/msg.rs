@@ -1,3 +1,4 @@
+use anyhow::Result;
 use prost::{DecodeError, Message};
 use prost_types::Any;
 
@@ -11,9 +12,10 @@ where
     }
 }
 
-pub fn from_any<T>(msg: &Any) -> Result<T, DecodeError>
+pub fn from_any<T>(msg: &Any) -> Result<T>
 where
     T: Message + Sized + Default,
 {
-    T::decode(msg.value.as_slice())
+    let decoded_any = T::decode(msg.value.as_slice())?;
+    Ok(decoded_any)
 }
