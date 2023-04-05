@@ -4,8 +4,14 @@
 pub struct Params {
     #[prost(string, tag = "1")]
     pub foundation_tax: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "2")]
-    pub censored_msg_type_urls: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Censorship {
+    #[prost(string, tag = "1")]
+    pub msg_type_url: ::prost::alloc::string::String,
+    #[prost(enumeration = "CensorshipAuthority", tag = "2")]
+    pub authority: i32,
 }
 /// Member represents a foundation member with an account address and metadata.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -207,6 +213,51 @@ pub struct Pool {
     pub treasury: ::prost::alloc::vec::Vec<
         super::super::super::cosmos::base::v1beta1::DecCoin,
     >,
+}
+/// FoundationExecProposal is x/gov proposal to trigger the x/foundation messages on behalf of x/gov.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FoundationExecProposal {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub description: ::prost::alloc::string::String,
+    /// x/foundation messages to execute
+    /// all the signers must be x/gov authority.
+    #[prost(message, repeated, tag = "3")]
+    pub messages: ::prost::alloc::vec::Vec<::prost_types::Any>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum CensorshipAuthority {
+    /// CENSORSHIP_AUTHORITY_UNSPECIFIED defines an invalid authority.
+    Unspecified = 0,
+    /// CENSORSHIP_AUTHORITY_GOVERNANCE defines x/gov authority.
+    Governance = 1,
+    /// CENSORSHIP_AUTHORITY_FOUNDATION defines x/foundation authority.
+    Foundation = 2,
+}
+impl CensorshipAuthority {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            CensorshipAuthority::Unspecified => "CENSORSHIP_AUTHORITY_UNSPECIFIED",
+            CensorshipAuthority::Governance => "CENSORSHIP_AUTHORITY_GOVERNANCE",
+            CensorshipAuthority::Foundation => "CENSORSHIP_AUTHORITY_FOUNDATION",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CENSORSHIP_AUTHORITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "CENSORSHIP_AUTHORITY_GOVERNANCE" => Some(Self::Governance),
+            "CENSORSHIP_AUTHORITY_FOUNDATION" => Some(Self::Foundation),
+            _ => None,
+        }
+    }
 }
 /// VoteOption enumerates the valid vote options for a given proposal.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -511,6 +562,21 @@ pub struct MsgLeaveFoundation {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MsgLeaveFoundationResponse {}
+/// MsgUpdateCensorship is the Msg/UpdateCensorship request type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateCensorship {
+    /// authority over the target censorship.
+    #[prost(string, tag = "1")]
+    pub authority: ::prost::alloc::string::String,
+    /// new censorship information
+    #[prost(message, optional, tag = "2")]
+    pub censorship: ::core::option::Option<Censorship>,
+}
+/// MsgUpdateCensorshipResponse is the Msg/UpdateCensorship response type.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MsgUpdateCensorshipResponse {}
 /// MsgGrant is the Msg/Grant request type.
 /// on behalf of the foundation.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -610,6 +676,8 @@ pub struct GenesisState {
     /// pool
     #[prost(message, optional, tag = "8")]
     pub pool: ::core::option::Option<Pool>,
+    #[prost(message, repeated, tag = "10")]
+    pub censorships: ::prost::alloc::vec::Vec<Censorship>,
 }
 /// GrantAuthorization defines authorization grant to grantee via route.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -707,6 +775,13 @@ pub struct EventLeaveFoundation {
     /// address is the account address of the foundation member.
     #[prost(string, tag = "1")]
     pub address: ::prost::alloc::string::String,
+}
+/// EventUpdateCensorship is emitted when a censorship information updated.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EventUpdateCensorship {
+    #[prost(message, optional, tag = "1")]
+    pub censorship: ::core::option::Option<Censorship>,
 }
 /// EventGrant is emitted on Msg/Grant
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -905,6 +980,29 @@ pub struct QueryTallyResultResponse {
     /// tally defines the requested tally.
     #[prost(message, optional, tag = "1")]
     pub tally: ::core::option::Option<TallyResult>,
+}
+/// QueryCensorshipsRequest is the request type for the Query/Censorships RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryCensorshipsRequest {
+    /// pagination defines an optional pagination for the request.
+    #[prost(message, optional, tag = "1")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageRequest,
+    >,
+}
+/// QueryCensorshipsResponse is the response type for the Query/Censorships RPC method.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct QueryCensorshipsResponse {
+    /// authorizations is a list of grants granted for grantee.
+    #[prost(message, repeated, tag = "1")]
+    pub censorships: ::prost::alloc::vec::Vec<Censorship>,
+    /// pagination defines the pagination in the response.
+    #[prost(message, optional, tag = "2")]
+    pub pagination: ::core::option::Option<
+        super::super::super::cosmos::base::query::v1beta1::PageResponse,
+    >,
 }
 /// QueryGrantsRequest is the request type for the Query/Grants RPC method.
 #[allow(clippy::derive_partial_eq_without_eq)]

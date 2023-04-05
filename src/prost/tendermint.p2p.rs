@@ -46,3 +46,29 @@ pub struct DefaultNodeInfoOther {
     #[prost(string, tag = "2")]
     pub rpc_address: ::prost::alloc::string::String,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PexRequest {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PexAddrs {
+    #[prost(message, repeated, tag = "1")]
+    pub addrs: ::prost::alloc::vec::Vec<NetAddress>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Message {
+    #[prost(oneof = "message::Sum", tags = "1, 2")]
+    pub sum: ::core::option::Option<message::Sum>,
+}
+/// Nested message and enum types in `Message`.
+pub mod message {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Sum {
+        #[prost(message, tag = "1")]
+        PexRequest(super::PexRequest),
+        #[prost(message, tag = "2")]
+        PexAddrs(super::PexAddrs),
+    }
+}

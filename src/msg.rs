@@ -1,5 +1,5 @@
 use anyhow::Result;
-use prost::{DecodeError, Message};
+use prost::Message;
 use prost_types::Any;
 
 pub fn to_any<T>(msg: &T, type_url: &str) -> Any

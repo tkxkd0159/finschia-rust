@@ -1,34 +1,31 @@
 use std::collections::HashMap;
-use std::env;
-use std::ffi::OsString;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() -> io::Result<()> {
-    if env::var_os("FNSA_INIT") != Some(OsString::from("1")) {
-        println!("cargo:rerun-if-changed=build.rs");
-    }
+    println!("cargo:warning=`cargo clean` if you want re-run build.rs without changes");
+    println!("cargo:rerun-if-changed=build.rs");
 
-    const TARGET_PROTO_DIR: &[&str; 2] = &["lbm-sdk/proto", "lbm-sdk/third_party/proto"];
+    const TARGET_PROTO_DIR: [&str; 2] = ["lbm-sdk/proto", "lbm-sdk/third_party/proto"];
+
+    let mut proto_files = Vec::new();
+    for dir in TARGET_PROTO_DIR.iter() {
+        visit_dirs(Path::new(dir), &mut |x| {
+            if let Some("proto") = x.to_str()?.split('.').collect::<Vec<&str>>().pop() {
+                proto_files.push(x);
+            }
+            Some(())
+        })?;
+    }
+    record_proto_paths("proto_list.txt", &proto_files)?;
 
     let proto_out = Path::new("src/prost");
     fs::create_dir_all(proto_out)?;
-
-    let mut proto_files = Vec::new();
-    visit_dirs(Path::new("lbm-sdk/proto"), &mut |x| {
-        if let Some("proto") = x.to_str()?.split('.').collect::<Vec<&str>>().pop() {
-            proto_files.push(x);
-        }
-        Some(())
-    })?;
-    trace_proto_paths("proto_list.txt", &proto_files)?;
-
     let mut builder = prost_build::Config::new();
     builder.include_file("_include.rs").out_dir(proto_out);
-    builder.compile_protos(&proto_files, TARGET_PROTO_DIR)?;
-
+    builder.compile_protos(&proto_files, &TARGET_PROTO_DIR)?;
 
     // replace words to resolve conflicting implementation
     for (pattern, replacement) in [
@@ -71,7 +68,7 @@ where
     Ok(())
 }
 
-fn trace_proto_paths(logpath: &str, proto_paths: &Vec<PathBuf>) -> io::Result<()> {
+fn record_proto_paths(logpath: &str, proto_paths: &Vec<PathBuf>) -> io::Result<()> {
     let logpath = Path::new(logpath);
     if logpath.exists() {
         fs::remove_file(logpath)?;
@@ -107,6 +104,7 @@ fn patch_file(path: impl AsRef<Path>, pattern: &regex::Regex, replacement: &str)
 }
 
 #[allow(dead_code)]
+#[deprecated = "use built-in prost option instead"]
 fn gen_proto_include(proto_path: &str, out: &str) -> io::Result<()> {
     let out = Path::new(out);
     if out.exists() {

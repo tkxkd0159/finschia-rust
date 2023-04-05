@@ -155,6 +155,9 @@ pub mod google {
         include!("google.api.rs");
     }
 }
+pub mod ics23 {
+    include!("ics23.rs");
+}
 pub mod lbm {
     pub mod bankplus {
         pub mod v1 {
@@ -206,11 +209,37 @@ pub mod tendermint {
     pub mod abci {
         include!("tendermint.abci.rs");
     }
+    pub mod blockchain {
+        include!("tendermint.blockchain.rs");
+    }
+    pub mod consensus {
+        include!("tendermint.consensus.rs");
+    }
     pub mod crypto {
         include!("tendermint.crypto.rs");
     }
+    pub mod libs {
+        pub mod bits {
+            include!("tendermint.libs.bits.rs");
+        }
+    }
+    pub mod mempool {
+        include!("tendermint.mempool.rs");
+    }
     pub mod p2p {
         include!("tendermint.p2p.rs");
+    }
+    pub mod privval {
+        include!("tendermint.privval.rs");
+    }
+    pub mod state {
+        include!("tendermint.state.rs");
+    }
+    pub mod statesync {
+        include!("tendermint.statesync.rs");
+    }
+    pub mod store {
+        include!("tendermint.store.rs");
     }
     pub mod types {
         include!("tendermint.types.rs");

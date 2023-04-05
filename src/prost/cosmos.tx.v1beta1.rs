@@ -384,8 +384,7 @@ impl OrderBy {
 pub enum BroadcastMode {
     /// zero-value for mode ordering
     Unspecified = 0,
-    /// BROADCAST_MODE_BLOCK defines a tx broadcasting mode where the client waits for
-    /// the tx to be committed in a block.
+    /// DEPRECATED: use BROADCAST_MODE_SYNC instead,
     Block = 1,
     /// BROADCAST_MODE_SYNC defines a tx broadcasting mode where the client waits for
     /// a CheckTx execution response only.

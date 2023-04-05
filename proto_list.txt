@@ -1,4 +1,4 @@
-Proto Version:  ce8d9106347bfa7b7ca2419036eb8fac348d5299 lbm-sdk (v0.46.0-rc8-217-gce8d91063)
+Proto Version:  b57f364d64183c5c743840a2f60d79f93472f2d4 lbm-sdk (v0.46.0-rc8-228-gb57f364d6)
 
 lbm-sdk/proto/lbm/bankplus/v1/bankplus.proto
 lbm-sdk/proto/lbm/token/v1/tx.proto
@@ -90,3 +90,35 @@ lbm-sdk/proto/cosmos/distribution/v1beta1/distribution.proto
 lbm-sdk/proto/cosmos/distribution/v1beta1/tx.proto
 lbm-sdk/proto/cosmos/distribution/v1beta1/genesis.proto
 lbm-sdk/proto/cosmos/distribution/v1beta1/query.proto
+lbm-sdk/third_party/proto/cosmos_proto/cosmos.proto
+lbm-sdk/third_party/proto/proofs.proto
+lbm-sdk/third_party/proto/tendermint/libs/bits/types.proto
+lbm-sdk/third_party/proto/tendermint/statesync/types.proto
+lbm-sdk/third_party/proto/tendermint/consensus/wal.proto
+lbm-sdk/third_party/proto/tendermint/consensus/types.proto
+lbm-sdk/third_party/proto/tendermint/crypto/keys.proto
+lbm-sdk/third_party/proto/tendermint/crypto/proof.proto
+lbm-sdk/third_party/proto/tendermint/version/types.proto
+lbm-sdk/third_party/proto/tendermint/blockchain/types.proto
+lbm-sdk/third_party/proto/tendermint/state/types.proto
+lbm-sdk/third_party/proto/tendermint/types/block.proto
+lbm-sdk/third_party/proto/tendermint/types/canonical.proto
+lbm-sdk/third_party/proto/tendermint/types/evidence.proto
+lbm-sdk/third_party/proto/tendermint/types/events.proto
+lbm-sdk/third_party/proto/tendermint/types/params.proto
+lbm-sdk/third_party/proto/tendermint/types/types.proto
+lbm-sdk/third_party/proto/tendermint/types/validator.proto
+lbm-sdk/third_party/proto/tendermint/p2p/pex.proto
+lbm-sdk/third_party/proto/tendermint/p2p/types.proto
+lbm-sdk/third_party/proto/tendermint/mempool/types.proto
+lbm-sdk/third_party/proto/tendermint/abci/types.proto
+lbm-sdk/third_party/proto/tendermint/store/types.proto
+lbm-sdk/third_party/proto/tendermint/privval/types.proto
+lbm-sdk/third_party/proto/gogoproto/gogo.proto
+lbm-sdk/third_party/proto/ostracon/types/block.proto
+lbm-sdk/third_party/proto/ostracon/types/types.proto
+lbm-sdk/third_party/proto/ostracon/abci/types.proto
+lbm-sdk/third_party/proto/google/api/httpbody.proto
+lbm-sdk/third_party/proto/google/api/annotations.proto
+lbm-sdk/third_party/proto/google/api/http.proto
+lbm-sdk/third_party/proto/google/protobuf/any.proto
